@@ -1,0 +1,83 @@
+name: "weekly_run"
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 11 * * 3"
+
+jobs:
+  weekly_run_fit:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.2.3'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install libudunits2-dev libcurl4-openssl-dev libgdal-dev
+    - uses: r-lib/actions/setup-renv@v2-branch
+
+    - name: Create output objects
+      run: Rscript 'R/workflow/workflow_fit.R'
+
+    - name: Commit files
+      run: |
+        git config user.email "action@github.com"
+        git config user.name "GitHub Action - Output without sims"
+        git add --all
+        git commit -m "Build output files"
+        git pull --rebase origin main
+        git push
+        echo "pushed to github"
+        
+    - name: Create issue about failure
+      if: failure() && github.event_name != 'workflow_dispatch'
+      run: |
+        gh issue reopen 1234
+
+  weekly_run_sim:
+    needs: weekly_run_fit
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.2.3'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install libudunits2-dev libcurl4-openssl-dev libgdal-dev
+    - uses: r-lib/actions/setup-renv@v2-branch
+    
+    - name: Pull changes
+      run: |
+        git pull --rebase origin main
+
+    - name: Create output objects
+      run: Rscript 'R/workflow/workflow_sim.R'
+
+    - name: Commit files
+      run: |
+        git config user.email "action@github.com"
+        git config user.name "GitHub Action - Final Output"
+        git add --all
+        git commit -m "Build output files"
+        git pull --rebase origin main
+        git push
+        echo "pushed to github"
+        
+    - name: Create issue about failure
+      if: failure() && github.event_name != 'workflow_dispatch'
+      run: |
+        gh issue reopen 1234

@@ -1,0 +1,21 @@
+name: "copy_to_shiny"
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 20 * * 3"
+
+jobs:
+  copy_output_files:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Push generated files to shiny app
+      uses: GuillaumeFalourd/copy-push-files@v1
+      with:
+        access_token: ${{ secrets.API_TOKEN_GITHUB }}
+        target_branch: main
+        source_files: 'Output/output_model_IT_total.RDS Output/output_model_CZ.RDS Output/output_model_FR.RDS'
+        remote_repository: https://github.com/alxsrobert/RShiny_covid_ECDC
+        target_dir: Scripts_RShiny
+        commit_message: "Automatic weekly update output objects"

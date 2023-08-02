@@ -1,0 +1,22 @@
+Package: backend_covid_ecdc
+Version: 0.1
+Imports: 
+    data.table,
+    qs,
+    readxl,
+    surveillance,
+    remotes,
+    hhh4addon,
+    hhh4contacts,
+    sf,
+    socialmixr,
+    ggplot2,
+    spdep,
+    abind,
+    ISOweek,
+    dplyr,
+    tidyr,
+    scoringutils,
+    cowplot,
+    grid,
+    gridExtra
