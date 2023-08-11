@@ -115,7 +115,7 @@ import_all_files <- function(country, total, range, delay_cumu, last_date, downl
                               dt_vacc = vacc_age, total = total,
                               dt_europe = case_europe, dt_urban = urban,
                               dt_variant = variant)
-
+  
   return(list(sts_obj_nei = sts_obj_nei, C = C, map = map,
               covariates = covariates, age_groups = age_groups))
 }
@@ -193,6 +193,8 @@ import_case <- function(country, download, data_file, index, total = F){
       ## a day exceeded 1% of the population
       case1[nuts3 == "ITH10" & new_confirmed > 8000, new_confirmed := 0]
       case1[nuts3 == "ITG17" & new_confirmed > 20000, new_confirmed := 0]
+      ## Same in ITH52, remove recent extreme value (one-day-spike)
+      case1[nuts3 == "ITH52" & new_confirmed > 5000, new_confirmed := 0]
       
       ## Select columns location_key, date, new_confirmed, and cumulative_confirmed
       case1 <- case1[, .(location_key = nuts3, date = as.character(date), 

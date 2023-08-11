@@ -1,5 +1,7 @@
+The analysis, code, Shiny App and model were developed and implemented by Alexis Robert, Lloyd Chapman, Adam Kucharski, and Sebastian Funk (Centre for Mathematical Modelling of Infectious Diseases, London School and Hygiene and Tropical Medicine), and Bastian Prasse, Frank Sandmann, Rene Niehus, and Rok Grah (ECDC)
+
 # Backend code for RShiny App: Analysis of COVID-19 outbreak risk at subnational level in the vaccine era
-This repository contains the script and functions to fit COVID-19 outbreaks in various EU countries (currently France, Czechia, and Italy), generate 28-day case and deaths forecasts, and simulate the impact of changes in transmission on outbreak risks. The model is implemented using a distributed-lag version of the Endemic-Epidemic model (as described in the [surveillance](https://cran.r-project.org/web/packages/surveillance/index.html) and [hhh4addon](https://github.com/jbracher/hhh4addon) R packages). In France and Czechia, the model implemented is age-stratified (following the approach of the [hhh4contacts](https://cran.r-project.org/web/packages/hhh4contacts/index.html) package). The specifics of the model in each country are detailed in the file [backend_code_methods.pdf](backend_code_methods.pdf).
+This repository contains the script and functions to fit data on COVID-19 outbreaks in various EU countries (currently France, Czechia, and Italy), generate 28-day case and death forecasts, and simulate the impact of changes in transmission on outbreak risks. The model is implemented using a distributed-lag version of the Endemic-Epidemic model (as described in the [surveillance](https://cran.r-project.org/web/packages/surveillance/index.html) and [hhh4addon](https://github.com/jbracher/hhh4addon) R packages). In France and Czechia, the model implemented is age-stratified (following the approach of the [hhh4contacts](https://cran.r-project.org/web/packages/hhh4contacts/index.html) package). The specifics of the model in each country are detailed in the file [backend_code_methods.pdf](backend_code_methods.pdf).
 
 ## Installation
 Clone/download this project onto your machine.
@@ -29,7 +31,7 @@ install.packages(c("data.table","qs","readxl",”surveillance”,”remotes”,�
 `hhh4addon` is installed when the code is run if it has not already been installed.
 
 ## Data
-The analysis uses COVID-19 and demographic data from various sources. Some datasets, such as the case data, vaccination data and testing data, are by default downloaded in real-time as the code runs (see Table 1 in [backend_code_methods.pdf](backend_code_methods.pdf) for details of the sources for each country). Other datasets, such as the population data, contact data and response measures data, are saved as static versions in the [Data](Data) directory. It contains the following files:
+The analysis uses COVID-19 and demographic data from various sources. Some datasets, such as the case data, vaccination data and testing data, are by default downloaded in real-time as the code runs (see Table 1 in [backend_code_methods.pdf](backend_code_methods.pdf) for details of the sources for each country). Other datasets, such as the population data and contact data, are saved as static versions in the [Data](Data) directory. It contains the following files:
 
 * [NUTS2021.xlsx](Data/NUTS2021.xlsx): File with urban/rural status of NUTS-3 regions from [Eurostat rural development methodology](https://ec.europa.eu/eurostat/web/rural-development/methodology)
 * [demo_r_d2jan_1_Data.csv](Data/demo_r_d2jan_1_Data.csv): Population of EU countries in 2020 by year-of-age at different NUTS levels from [Eurostat demographic data](https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset=demo_r_d2jan&lang=en)
@@ -38,6 +40,7 @@ The analysis uses COVID-19 and demographic data from various sources. Some datas
 * [pop_struct.csv](Data/pop_struct.csv): 2020 NUTS-3-level population data for France downloaded from [INSEE](https://www.insee.fr/fr/statistiques/1893198)
 * [synthetic_contacts_2020.csv](Data/synthetic_contacts_2020.csv): Synthetic contact data for 172 countries from [Prem et al 2021](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009098) downloaded from [here](https://github.com/kieshaprem/synthetic-contact-matrices/tree/6e0eebc2524db277ae8110431b187ac589884dd9/output/syntheticcontactmatrices2020).
 * [variant.csv](Data/variant.csv): National-level variant frequency data for EU countries downloaded from [Data on SARS-CoV-2 variants in the EU/EEA](https://www.ecdc.europa.eu/en/publications-data/data-virus-variants-covid-19-eueea). This dataset is a static backup version used only if there are errors in the version downloaded when the code runs.
+* [File NUTS_RG_20M_2021_3035.shp](Data/NUTS_RG_20M_2021_3035.shp): contains all shapefiles, downloaded from [the Eurostat website](https://gisco-services.ec.europa.eu/distribution/v2/nuts/shp/NUTS_RG_20M_2021_3035.shp.zip), Copied in this folder because downloading the file in R can sometimes trigger errors.
 
 
 ## Running the code
@@ -45,12 +48,21 @@ To run the model and generate forecasts in the different countries: set the work
 ```R
 source(“R/script_model/script_import_to_pred.R”)
 ```
-The overall running time should be approximately 5 hours on a standard laptop with a 3.0 GHz processor and 32 GB RAM. This will generate the output files contained in the [Output](Output) directory. These files should then be moved to the [RShiny Github repository](https://github.com/alxsrobert/RShiny_covid_ECDC). Change the value of `pred_date` ([script_import_to_pred.R](R/script_model/script_import_to_pred.R)) to fit the model to a more recent prediction date.
+The overall run time should be approximately 5 hours on a standard laptop with a 3.0 GHz processor and 32 GB RAM. This will generate the output files contained in the [Output](Output) directory. These files should then be moved to the [RShiny GitHub repository](https://github.com/alxsrobert/RShiny_covid_ECDC). Change the value of `pred_date` ([script_import_to_pred.R](R/script_model/script_import_to_pred.R)) to fit the model up to a more recent prediction date. 
+
+The predictions on the [RShiny GitHub repository](https://github.com/alxsrobert/RShiny_covid_ECDC) are automatically updated weekly using the scripts in the [workflow](R/workflow) folder and [GitHub Actions](.github/workflows). The workflow scripts are similar to [script_import_to_pred.R](R/script_model/script_import_to_pred.R), but are separated by the type of forecasts ([workflow_fit](R/workflow/workflow_fit.R) to generate forecasts at previous and current dates, [workflow_sim](R/workflow/workflow_sim.R) to generate forecasts according to different scenarios). They were separated to avoid going over the GitHub Action time limit.
+
+To run the calibration analysis over the last six months of data, run the command:
+```R
+source(“R/calibration/script_calib.R”)
+```
+This will generate various figures and tables summarising the calibration results, and comparing the predictions from our model to forecasts generated by the European COVID-19 Forecast Hub ensemble model. The figures and tables will be generated in different folders of the [Output](Output) directory using the full model, an empty age-stratifed, a non-age-stratified version and an empty non-stratified version of the model. This highlights the impact of added complexity on the forecasting ablities of the model.
+
 The framework developed in this repository can be applied to countries that report daily subnational case data (at NUTS-3 level) and subnational death data (at NUTS1-NUTS2 level), along with local vaccine and testing data. If the data sources are stratified by age groups, then an age-stratified version of the model can be implemented.
 
 ## Modifying the code
 Instructions for how to integrate a new country in the analysis, how to add a new variant to the fitting section, and how to add alternative NPIs in the Scenario forecasts can be found in the sections below. We also briefly present what is contained in every script.
-Please contact us via email (<alexis.robert@lshtm.ac.uk>; <lloyd.chapman1@lshtm.ac.uk>) or open an issue if you need assistance with editing the repository.
+Please contact us via email (<alexis.robert@lshtm.ac.uk>; <l.chapman4@lancaster.ac.uk>) or open an issue if you need assistance with editing the repository.
 
 ### How to add a new country to the backend code (Tag)
 As most EU countries only have non-age-stratified subnational data available, we only provide detailed instructions for adding non-age-stratified forecasts here. All countries are identified by their two-letter ISO country code as defined in the `country_code` variable in the [index  file](Data/index.csv) of the [Google COVID-19 Open Data](https://github.com/GoogleCloudPlatform/covid-19-open-data), e.g. `FR` for France. 
@@ -154,20 +166,31 @@ Directory structure:
 
 
 ```
+├── .github
+│   ├── workflows
+│   │   ├── copy_shiny.yml
+│   │   └── run.yml
 ├── Data
 │   ├── NUTS2021.xlsx
+│   ├── NUTS_RG_20M_2021_3035.shp.zip
 │   ├── demo_r_d2jan_1_Data.csv
 │   ├── demo_r_pjangrp3_1_Data.csv
 │   ├── index.csv
 │   ├── pop_struct.csv
+│   ├── source_NUTS.txt
 │   ├── synthetic_contacts_2020.csv
-│   ├── variant.csv
+│   └── variant.csv
 ├── LICENSE
 ├── Output
 │   ├── output_model_CZ.RDS
 │   ├── output_model_FR.RDS
 │   └── output_model_IT_total.RDS
 ├── R
+│   ├── calibration
+│   │   ├── figures_calib.R
+│   │   ├── function_main_figure.R
+│   │   ├── script_calib.R
+│   │   └── function_calib.R
 │   ├── function_utils.R
 │   ├── functions_custom_hhh4
 │   │   ├── function_interpretControl.R
@@ -186,9 +209,12 @@ Directory structure:
 │   │   ├── function_models.R
 │   │   ├── function_n_step_ahead.R
 │   │   └── function_predict_covariates.R
-│   └── script_model
-│   	├── function_generate_list_output.R
-│   	└── script_import_to_pred.R
+│   ├── script_model
+│   │   ├── function_generate_list_output.R
+│   │   └── script_import_to_pred.R
+│   └── workflow
+│       ├── workflow_fit.R
+│       └── workflow_sim.R
 ├── README.md
 └── backend_code_methods.pdf
 ```
@@ -211,10 +237,18 @@ The scripts in the [R](R) folder contain the following:
   * `function_models.R`: Function for fitting the (age-stratified) distributed-lag `hhh4` model that creates the `control` object from the model equations and covariate data
   * `function_n_step_ahead.R`: Function for forecasting cases `n` days ahead with predicted values of covariates and different scenarios for variant transmissibility and importation level
   * `function_predict_covariates.R`: Functions for projecting covariates for case forecasts with different projection types
+* `calibration/`
+  * `function_calib.R`: Functions to run the calibration analysis for some (or all) countries at a set of dates, and generate figures and tables describing the calibration results.
+  * `figures_calib.R`: Functions to produce the calibration figures and tables per country. 
+  * `function_main_figure.R`: Functions to produce the calibration figures and tables comparing scores and performance in each country. 
+  * `script_calib.R`: Top-level script to run the calibration analysis and generate the figures and tables, for a set of models, dates and countries. The calibration files, figures, and tables will be added in the [Output](Output) directory. 
+* `workflow/`
+  * `workflow_fit.R`: Top-level script used in GitHub actions to produce case forecasts at current and previous dates.
+  * `workflow_sim.R`: Top-level script used in GitHub actions to produce case forecasts in different transmission scenarios.
 * `script_model/`
   * `function_generate_list_output.R`: Function for generating case forecasts for a specific country over a certain date range
   * `script_import_to_pred.R`: Top-level script for setting options and running code to produce case forecasts
 
 ## Authors
 * Alexis Robert: <alexis.robert@lshtm.ac.uk>
-* Lloyd Chapman: <lloyd.chapman1@lshtm.ac.uk>
+* Lloyd Chapman: <l.chapman4@lancaster.ac.uk>
