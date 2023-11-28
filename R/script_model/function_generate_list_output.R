@@ -36,7 +36,7 @@ generate_list_output <- function(country, range_dates, download, data_file, tota
                    , "log(pop)", "log(europe/1e8)"
     )
     ne_terms <- c("1", "log(pop)"
-                  , "log(1 - test_prop)", "tues", "wed", "thu", "fri", "sat", "sun"
+                  , "log(test_prop)", "tues", "wed", "thu", "fri", "sat", "sun"
                   , "rural", "int_rur", "int_urb", "log(1 - cov_tot)"
                   , "log(1 - inc_old)", "log(1 - inc_new)"
                   , "delta", "omicron"
@@ -62,7 +62,7 @@ generate_list_output <- function(country, range_dates, download, data_file, tota
                    "rural", "int_rur", "int_urb"
     )
     ne_terms <- c("1", GROUPS[-1] 
-                  , "log(test_age)", "log(1 - test_prop)", "log(pop_age)", "log(pop)"
+                  , "log(test_age)", "log(test_prop)", "log(pop_age)", "log(pop)"
                   , "tues", "wed", "thu", "fri", "sat", "sun"
                   , "rural", "int_rur", "int_urb"
                   , "log(1 - cov_tot)"
@@ -133,7 +133,7 @@ generate_list_output <- function(country, range_dates, download, data_file, tota
   
   if(simulations){
     ### Generate scenarios with changes in transmission
-    delay <- c(7, 14)
+    delay <- c(7)
     transmissibility <- c(1, 1.2, 1.4)
     NPIs <- c(.6, .8, 1)
     if (!total) target <- c("children", "work", "older", "all", "endemic") else 

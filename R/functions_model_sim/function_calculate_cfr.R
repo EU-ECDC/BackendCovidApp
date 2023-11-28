@@ -98,7 +98,8 @@ calculate_cfr <- function(country, download, data_file, death_data_file, total =
     }
   }
   case_and_death_agg[!is.na(deaths_shifted) & is.nan(CFR), CFR := 0]
-  
+  case_and_death_agg[is.infinite(CFR), CFR := 0]
+
   return(case_and_death_agg)
 }
 
@@ -170,7 +171,7 @@ forecast_death <- function(predictions, dt_cfr, cases, dates, country, total = F
                              ref_cfr + rnorm(n = 10, mean = delta_cfr, sd = sd_cfr)]
           # If predicted values of the cfr are below 0, set them to 0
           cfr_vec[cfr_vec < 0] <- 0
-          
+          cfr_vec[cfr_vec > 1] <- 1
           # Draw forecasts using a binomial distribution
           drawjk <- rbinom(n = ncol(pred_week), size = cases_week[k, j], prob = cfr_vec)
           pred_deaths[k, j, ] <- drawjk
@@ -192,6 +193,7 @@ forecast_death <- function(predictions, dt_cfr, cases, dates, country, total = F
           cfr_vec <- cfr_set[date == (min(as.Date(date)) + 7 * (n_cases_week)),
                              ref_cfr + rnorm(n = 10, mean = delta_cfr, sd = sd_cfr)]
           cfr_vec[cfr_vec < 0] <- 0
+          cfr_vec[cfr_vec > 1] <- 1
           drawjk <- rbinom(n = ncol(pred_week), size = pred_week[j, , k], prob = cfr_vec)
           pred_deaths[k + nrow(cases_week), j, ] <- drawjk
         }

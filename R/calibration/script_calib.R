@@ -29,7 +29,8 @@ country <- "all"
 run <- T #FALSE
 
 # Define the prediction date
-pred_date <- as.character(Sys.Date() - 3)
+# pred_date <- as.character(Sys.Date() - 3)
+pred_date <- "2023-04-24"
 
 # Run calibration:
 # Full age-stratified model

@@ -23,7 +23,7 @@ compute_calib <- function(country, range_dates, download, data_file, total, date
                    , "log(pop)", "log(europe/1e8)"
     )
     ne_terms <- c("1", "log(pop)"
-                  , "log(1 - test_prop)", "tues", "wed", "thu", "fri", "sat", "sun"
+                  , "log(test_prop)", "tues", "wed", "thu", "fri", "sat", "sun"
                   , "rural", "int_rur", "int_urb", "log(1 - cov_tot)"
                   , "log(1 - inc_old)", "log(1 - inc_new)"
                   , "delta", "omicron"
@@ -50,7 +50,7 @@ compute_calib <- function(country, range_dates, download, data_file, total, date
                    , "log(pop * pop_age)", "rural", "int_rur", "int_urb"
     )
     ne_terms <- c("1", GROUPS[-1] 
-                  , "log(test_age)", "log(1 - test_prop)", "log(pop_age)", "log(pop)"
+                  , "log(test_age)", "log(test_prop)", "log(pop_age)", "log(pop)"
                   , "tues", "wed", "thu", "fri", "sat", "sun"
                   , "rural", "int_rur", "int_urb"
                   , "log(1 - cov_tot)"
@@ -106,6 +106,7 @@ compute_calib <- function(country, range_dates, download, data_file, total, date
   ### Initialise list of predictions
   pred_list <- list()
   q_pred_list <- list()
+  q_pred_reg_list <- list()
   
   ### 28-day forecasts since March 2022
   ## Initialise vector of prediction dates, prediction and observation matrices
@@ -114,13 +115,15 @@ compute_calib <- function(country, range_dates, download, data_file, total, date
   obs_week <- numeric()
   
   obs <- sts_obj_nei@observed
+  obs_week_reg <- matrix(nrow = length(t_pred), ncol = ncol(obs))
+  colnames(obs_week_reg) <- colnames(obs)
   rownames(obs) <- as.character(as.Date(epoch(sts_obj_nei), origin = "1970-01-01"))
   
   for(i in seq_along(t_pred)){
     ## Prediction date
     t_i <- t_pred[i]
     model_pred <- model_fit
-    ## Set extreme values of standard deviations to 0
+    ## Set random number seed for simulations
     set.seed(1)
     ## Set extreme values of standard deviations to 0
     if(any(model_pred$se > 10)) {
@@ -145,17 +148,59 @@ compute_calib <- function(country, range_dates, download, data_file, total, date
     up_pred_week[i,] <- t(q_pred_i[, `97.5%`])
     # Calculate weekly number of cases in data
     if(t_i + 7 <= nrow(obs)) obs_week[i] <- sum(obs[t_i + seq_len(7), ])
+    if(t_i + 7 <= nrow(obs)) obs_week_reg[i,] <- colSums(obs[t_i + seq_len(7), ])
     q_pred_list[[i]] <- q_pred_i
+    q_pred_reg_list_j <- list()
+    for(j in seq_len(ncol(pred_list[[i]]$sim))){
+      pred_j <- apply(pred_list[[i]]$sim[,j,], 3, rowSums)
+      rownames(pred_j) <- ceiling((as.numeric(rownames(pred_j)) - as.numeric(rownames(pred_j))[1] + 1)/7)
+      tmp <- rowsum(pred_j, group = rownames(pred_j))
+      dt_tmp <- melt(as.data.table(tmp, keep.rownames = "horizon"), id.vars = "horizon")
+      dt_tmp$reg <- colnames(pred_list[[i]]$sim)[j]
+      # q_pred_reg_list_j[[j]] <- q_pred_j
+      q_pred_reg_list_j[[j]] <- dt_tmp
+    }
+    dt_i <- rbindlist(q_pred_reg_list_j)
+    if(!all(sub("[.].*", "", dt_i$reg) == dt_i$reg)){
+      dt_tot <- dt_i[, lapply(.SD, sum), by = .(horizon, variable, reg = paste0(sub("[.].*", "", reg), ".tot")), 
+                     .SDcols = "value"]
+      dt_i <- as.data.table(rbind.data.frame(dt_i, dt_tot))
+      dt_age <- dt_i[, lapply(.SD, sum), by = .(horizon, variable, reg = paste0("tot.", sub(".*[.]", "", reg))), 
+                     .SDcols = "value"]
+      dt_i <- as.data.table(rbind.data.frame(dt_i, dt_age))
+      dt_i[, age := sub(".*[.]", "", reg)]
+      dt_i[age == "0-9" | age == "10-19", age := "0-20"]
+      dt_i[age == "20-29" | age == "30-39" | age == "40-49" | age == "50-59", 
+           age := "20-60"]
+      dt_i[age == "60-69" | age == "70-79", age := "60-80"]
+      dt_i[, reg := sub("[.].*", "", reg)]
+      dt_i <- dt_i[, lapply(.SD, sum), by = .(horizon, variable, reg, age), .SDcols = "value"]
+      dt_i[, reg := paste(reg, age, sep = ".")]
+      dt_i[, age := NULL]
+    }
+    q_pred_reg_i <- dt_i[, as.list(
+      quantile(value,
+               probs = c(0.01, 0.025, 0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.45, 0.5,
+                         0.55, 0.6, 0.7, 0.75, 0.8, 0.9, 0.95, 0.975, 0.99))),
+      by = .(horizon, reg)]
+    
+    q_pred_reg_list[[i]] <- q_pred_reg_i
   }
-  names(obs_week) <- as.character(as.Date(epoch(sts_obj_nei), origin = "1970-01-01"))[t_pred][seq_along(obs_week)]
+  names(obs_week) <- rownames(obs_week_reg) <- 
+    as.character(as.Date(epoch(sts_obj_nei), origin = "1970-01-01"))[t_pred][seq_along(obs_week)]
   rownames(pred_week) <- as.character(as.Date(epoch(sts_obj_nei), origin = "1970-01-01"))[t_pred]
   q_pred <- rbindlist(q_pred_list, idcol = "i")
   q_pred[, date := dates[i]]
   q_pred[, i := NULL]
   q_pred <- melt(q_pred, id.vars = c("date", "horizon"), variable.name = "quantile", value.name = "prediction")
   q_pred[, quantile := as.numeric(sub("%", "", quantile))/100]
+  
+  q_pred_reg <- rbindlist(q_pred_reg_list, idcol = "i")
+  q_pred_reg[, date := dates[i]]
+  q_pred_reg[, i := NULL]
   ## Generate calib, containing the number of weekly cases (predicted and in data)
-  calib <- list(obs = obs_week, pred_week = pred_week, low = low_pred_week, up = up_pred_week, q_pred = q_pred)
+  calib <- list(obs = obs_week, pred_week = pred_week, low = low_pred_week, up = up_pred_week, q_pred = q_pred,
+                q_pred_reg = q_pred_reg, obs_reg = obs_week_reg)
   names(pred_list) <- t_pred
   pred <- pred_list[[1]]
   
@@ -266,6 +311,15 @@ compute_calib <- function(country, range_dates, download, data_file, total, date
   obs_death <- rowSums(data_death_mat)[names(obs_week)]
   # Compute median predicted number of weekly deaths, and 95% prediction interval
   death_pred_nat <- lapply(death_pred, function(x) apply(x, c(1,3), sum))
+  death_pred_reg_list <- list()
+  for(j in seq_len(ncol(death_pred[[1]]))){
+    death_pred_j <- lapply(death_pred, function(x) x[,j,])
+    tmp_reg <- lapply(death_pred_j, function(x) {
+      melt(as.data.table(x, keep.rownames = "t"), id.vars = "t")
+      })
+    death_pred_reg_list[[j]] <- rbindlist(tmp_reg, idcol = "i")
+    names(death_pred_reg_list)[j] <- colnames(death_pred[[1]])[j]
+  }
   tmp <- lapply(death_pred_nat, function(x) melt(as.data.table(x, keep.rownames = "t"), id.vars = "t"))
   dt_tmp <- rbindlist(tmp, idcol = "i")
   dt_tmp[, `:=`(date = as.Date(epoch(sts_obj_nei), origin = "1970-01-01")[as.integer(i)],
@@ -285,10 +339,45 @@ compute_calib <- function(country, range_dates, download, data_file, total, date
   up_death_pred <- dcast(q_death_pred[quantile == "97.5%"], date ~ horizon, value.var = "prediction")
   up_death_pred <- as.matrix(up_death_pred[,!"date"], rownames.value = as.character(up_death_pred$date))
   q_death_pred[, quantile := as.numeric(sub("%", "", quantile))/100]
+  dt_death_reg <- rbindlist(death_pred_reg_list, idcol = "reg")
+  if(!all(sub("[.].*", "", dt_death_reg$reg) == dt_death_reg$reg)){
+    dt_death_tot <- dt_death_reg[, lapply(.SD, sum), by = .(i, t, variable, reg = paste0(sub("[.].*", "", reg), ".tot")), 
+                               .SDcols = "value"]
+    dt_death_reg <- as.data.table(rbind.data.frame(dt_death_reg, dt_death_tot))
+    dt_death_age <- dt_death_reg[, lapply(.SD, sum), by = .(i, t, variable, reg = paste0("tot.", sub(".*[.]", "", reg))), 
+                               .SDcols = "value"]
+    dt_death_reg <- as.data.table(rbind.data.frame(dt_death_reg, dt_death_age))
+  }
+  dt_death_reg[, `:=`(date = as.Date(epoch(sts_obj_nei), origin = "1970-01-01")[as.integer(i)],
+                horizon = (as.integer(t) - as.integer(i))/7,
+                sample = as.integer(sub("V", "", variable)))]
+  dt_death_reg[, (c("variable", "i", "t")) := NULL]
+  
+  if(!all(sub("[.].*", "", dt_death_reg$reg) == dt_death_reg$reg)){
+    dt_death_reg[, age := sub(".*[.]", "", reg)]
+    dt_death_reg[age == "0-9" | age == "10-19", age := "0-20"]
+    dt_death_reg[age == "20-29" | age == "30-39" | age == "40-49" | age == "50-59", 
+                 age := "20-60"]
+    dt_death_reg[age == "60-69" | age == "70-79", age := "60-80"]
+    dt_death_reg[, reg := sub("[.].*", "", reg)]
+    dt_death_reg <- dt_death_reg[, lapply(.SD, sum), by = .(horizon, sample, reg, age, date), 
+                                 .SDcols = "value"]
+    dt_death_reg[, reg := paste(reg, age, sep = ".")]
+    dt_death_reg[, age := NULL]
+  }
+  
+  
+  q_death_reg <- dt_death_reg[, as.list(
+    quantile(value, probs = c(0.01, 0.025, 0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.45, 0.5, 
+                              0.55, 0.6, 0.7, 0.75, 0.8, 0.9, 0.95, 0.975, 0.99))), 
+    by = .(date, horizon, reg)
+  ]
   
   # Put death predictions and data in the list calib_death 
   calib_death <- list(obs = obs_death, pred_week = mat_death_pred, low = low_death_pred, 
-                      up = up_death_pred, q_pred = q_death_pred)
+                      up = up_death_pred, q_pred = q_death_pred, q_pred_reg = q_death_reg,
+                      obs_reg = data_death_mat[is.element(rownames(data_death_mat), 
+                                                          names(obs_week)),])
   
   ## Compute death prediction scores
   # Produces a list of data tables (scores_death_list), each of which contains 
@@ -486,9 +575,7 @@ run_calib <- function(country, all_total, empty, run, pred_date, min_date = NA){
       paste0("https://raw.githubusercontent.com/covid19-forecast-hub-europe/covid19-forecast-hub-europe/main/data-processed/EuroCOVIDhub-ensemble/", 
              dates[i], "-EuroCOVIDhub-ensemble.csv"),
       sep = ","))
-    list_ensemble[[i]] <- dt_ensemble_i
-    ## Select countries of interest
-    dt_ensemble_i <- dt_ensemble_i[!is.na(quantile),]
+    list_ensemble[[i]] <- dt_ensemble_i[!is.na(quantile),]
   }
   
   # Bind ensemble forecasts for different forecast dates into one data table 

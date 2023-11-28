@@ -79,7 +79,13 @@ figure_country <- function(calib, type, dt_ensemble, min_date, countries = c("IT
       log_axis <- ""
       if(type == "case"){
         min_y <- min(c(obs_i, pred_i, ens_i), na.rm = T)
+        ens_i[ens_i == 0] <- 1
+        obs_i[obs_i == 0] <- 1
+        pred_i[pred_i == 0] <- 1
         if(min_y == 0) min_y <- 1
+        if(country_j == "IT") min_y <- 1e3
+        if(country_j == "CZ") min_y <- 1e2
+        if(country_j == "FR") min_y <- 1e3
         log_axis <- "y"
       }
       ## Plot observed data

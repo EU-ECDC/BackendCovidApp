@@ -919,7 +919,7 @@
     },
     "socialmixr": {
       "Package": "socialmixr",
-      "Version": "0.2.0",
+      "Version": "0.3.1",
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "e78ffcc67fff57ec03e68785a9ae7f52",

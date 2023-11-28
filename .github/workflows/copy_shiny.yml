@@ -16,6 +16,6 @@ jobs:
         access_token: ${{ secrets.API_TOKEN_GITHUB }}
         target_branch: main
         source_files: 'Output/output_model_IT_total.RDS Output/output_model_CZ.RDS Output/output_model_FR.RDS'
-        remote_repository: https://github.com/EU-ECDC/RShinyCovidApp
+        remote_repository: https://github.com/alxsrobert/RShiny_covid_ECDC
         target_dir: Scripts_RShiny
         commit_message: "Automatic weekly update output objects"
