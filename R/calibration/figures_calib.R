@@ -234,22 +234,21 @@ compar_figure <- function(calib, country, type, dt_ensemble, countries = c("IT",
       log_axis <- ""
       if(type == "case"){
         min_y <- min(c(obs_i, pred_i, ens_i), na.rm = T)
+        ens_i[ens_i == 0] <- 1
+        obs_i[obs_i == 0] <- 1
+        pred_i[pred_i == 0] <- 1
         if(min_y == 0) min_y <- 1
+        if(country_j == "IT") min_y <- 1e3
+        if(country_j == "CZ") min_y <- 1e2
+        if(country_j == "FR") min_y <- 1e3
         log_axis <- "y"
       }
       ## Plot observed data
       date_plot <- as.Date(names(pred_i))
       plot(obs_i ~ date_plot, type = "l", ylim = c(min_y, max_y), 
            xlab = "", ylab = "", lwd = 2, log = log_axis)
-      
-      ## Plot our predictions
-      lines(pred_i ~ date_plot, col = "#fc8d62", lwd = 1, lty = 2)
-      ## Plot median ensemble forecasts
-      lines(ens_i[, 2] ~ date_plot, col = "#66c2a5", lwd = 1, lty = 2)
-      ## Add 95% prediction interval
-      polygon(x = c(date_plot, rev(date_plot)), y = c(up_i, rev(low_i)), 
-              col = transp("#fc8d62", .4), border = NA)
-      ## Add 95% prediction interval
+      ## Add 95% prediction interval for the ensemble model, removing points where
+      ## no forecast is available
       if(any(is.na(ens_i[,1]))){
         index_i <- seq_len(which(is.na(ens_i[,1]))[1] -1)
         polygon(x = c(date_plot[index_i], rev(date_plot[index_i])), 
@@ -268,30 +267,36 @@ compar_figure <- function(calib, country, type, dt_ensemble, countries = c("IT",
         polygon(x = c(date_plot, rev(date_plot)), 
                 y = c(ens_i[, 1], rev(ens_i[, 3])), 
                 col = transp("#66c2a5", .4), border = NA)
+      ## Plot median ensemble forecasts
+      lines(ens_i[, 2] ~ date_plot, col = "#66c2a5", lwd = 1, lty = 2)
+      ## Add 95% prediction interval of our model
+      polygon(x = c(date_plot, rev(date_plot)), y = c(up_i, rev(low_i)), 
+              col = transp("#fc8d62", .4), border = NA)
+      ## Plot our predictions
+      lines(pred_i ~ date_plot, col = "#fc8d62", lwd = 1, lty = 2)
       
-      label <- paste("Comparison with ensemble model, \n", type, "data", country_j, i, 
-                     ifelse(i > 1, "weeks ahead", "week ahead"), sep = " ")
-      title(main = label, line = -2)
+      label <- paste(country_j, i, ifelse(i > 1, "weeks ahead", "week ahead"), sep = " ")
+      title(main = label, line = 0)
       
-      if(i == 1) legend("topright", legend = c("ensemble", "hhh4", "data"), 
+      if(i == 1) legend("topright", legend = c("ensemble", "EE model", "data"), 
                         col = c("#66c2a5", "#fc8d62", "black"), lwd = 1, bty = "n")
-      max_y <- max(abs((abs(pred_i - obs_i) - abs(ens_i[,2] - obs_i))))
-      
-      diff_pred_i <- abs(pred_i - obs_i)
-      diff_ens_i <- abs(ens_i[,2] - obs_i)
-      
-      if(type == "case"){
-        if(country_j == "FR" || country_j == "IT") thresh <- 5000
-        if(country_j == "CZ") thresh <- 1000
-      } else if(type == "death"){ 
-        if(country_j == "FR" || country_j == "IT") thresh <- 50
-        if(country_j == "CZ") thresh <- 0
-      }
-      
-      print(c(
-        sum((diff_pred_i - diff_ens_i) < -thresh, na.rm = T), # nb when pred_i is much better
-        sum((diff_pred_i - diff_ens_i) > thresh, na.rm = T)) # nb when ens_i is much better
-      )
+      # max_y <- max(abs((abs(pred_i - obs_i) - abs(ens_i[,2] - obs_i))))
+      # 
+      # diff_pred_i <- abs(pred_i - obs_i)
+      # diff_ens_i <- abs(ens_i[,2] - obs_i)
+      # 
+      # if(type == "case"){
+      #   if(country_j == "FR" || country_j == "IT") thresh <- 5000
+      #   if(country_j == "CZ") thresh <- 1000
+      # } else if(type == "death"){ 
+      #   if(country_j == "FR" || country_j == "IT") thresh <- 50
+      #   if(country_j == "CZ") thresh <- 0
+      # }
+      # 
+      # print(c(
+      #   sum((diff_pred_i - diff_ens_i) < -thresh, na.rm = T), # nb when pred_i is much better
+      #   sum((diff_pred_i - diff_ens_i) > thresh, na.rm = T)) # nb when ens_i is much better
+      # )
     }
     title(xlab = "Time", line = 0, outer = TRUE, cex.lab = 1.5)
     title(ylab = paste0("Number of ", type, "s"), line = 1, outer = TRUE, cex.lab = 1.5)
