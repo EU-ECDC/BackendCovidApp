@@ -125,18 +125,23 @@ figure_country <- function(calib, type, dt_ensemble, min_date, countries = c("IT
       
       if(i == 1) legend("topright", legend = c("ensemble", "EE model", "data"), 
                         col = c("#66c2a5", "#fc8d62", "black"), lwd = 1, bty = "n")
-      max_y <- max(abs((abs(pred_i - obs_i) - abs(ens_i[,2] - obs_i))))
-      
-      diff_pred_i <- abs(pred_i - obs_i)
-      diff_ens_i <- abs(ens_i[,2] - obs_i)
-      
-      if(type == "case"){
-        if(country_j == "FR" || country_j == "IT") thresh <- 5000
-        if(country_j == "CZ") thresh <- 1000
-      } else if(type == "death"){ 
-        if(country_j == "FR" || country_j == "IT") thresh <- 50
-        if(country_j == "CZ") thresh <- 0
-      }
+      # max_y <- max(abs((abs(pred_i - obs_i) - abs(ens_i[,2] - obs_i))))
+      # 
+      # diff_pred_i <- abs(pred_i - obs_i)
+      # diff_ens_i <- abs(ens_i[,2] - obs_i)
+      # 
+      # if(type == "case"){
+      #   if(country_j == "FR" || country_j == "IT") thresh <- 5000
+      #   if(country_j == "CZ") thresh <- 1000
+      # } else if(type == "death"){ 
+      #   if(country_j == "FR" || country_j == "IT") thresh <- 50
+      #   if(country_j == "CZ") thresh <- 0
+      # }
+      # 
+      # print(c(
+      #   sum((diff_pred_i - diff_ens_i) < -thresh, na.rm = T), # nb when pred_i is much better
+      #   sum((diff_pred_i - diff_ens_i) > thresh, na.rm = T)) # nb when ens_i is much better
+      # )
     }
   }
   title(xlab = "Prediction date (weeks)", line = 0, outer = TRUE, cex.lab = 1.5)
