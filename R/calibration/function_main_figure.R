@@ -35,7 +35,7 @@ figure_country <- function(calib, type, dt_ensemble, min_date, countries = c("IT
   
   ens <- dt_ensemble[grepl(type, target),]
   
-  png(paste0(dir_out, "compar_all_", type, ".png"), width = 900, height = 600)
+  pdf(paste0(dir_out, "compar_all_", type, ".pdf"), width = 600/72, height = 400/72)
   par(mfrow = c(4,loop), mar = c(3, 4, 2, 0.5), mar = c(3, 4, 1, 0),
       oma = c(2, 2, 0, 2), las = 1, bty = "l")
   # Plot the weekly country-wide forecast for each forecast horizon and country
@@ -121,7 +121,7 @@ figure_country <- function(calib, type, dt_ensemble, min_date, countries = c("IT
       lines(pred_i ~ date_plot, col = "#fc8d62", lwd = 1, lty = 2)
       
       label <- paste(country_j, i, ifelse(i > 1, "weeks ahead", "week ahead"), sep = " ")
-      title(main = label, line = 0)
+      title(main = label, cex.main = 0.9, line = 0)
       
       if(i == 1) legend("topright", legend = c("ensemble", "EE model", "data"), 
                         col = c("#66c2a5", "#fc8d62", "black"), lwd = 1, bty = "n")
@@ -145,7 +145,7 @@ figure_country <- function(calib, type, dt_ensemble, min_date, countries = c("IT
     }
   }
   title(xlab = "Prediction date (weeks)", line = 0, outer = TRUE, cex.lab = 1.5)
-  title(ylab = paste0("Number of ", type, "s"), line = 1, outer = TRUE, cex.lab = 1.5)
+  title(ylab = paste0("Number of ", type, "s"), line = 0, outer = TRUE, cex.lab = 1.5)
   dev.off()
 }
 
@@ -265,8 +265,8 @@ figure_median <- function(calib, type, min_date, countries = c("IT", "CZ", "FR")
 #### PIT histogram 
 figure_pit <- function(calib, type, min_date, countries = c("IT", "CZ", "FR"), dir_out = "Output/"){
   length_country <- 3
-  png(paste0(dir_out, "pit_all_", type, ".png"), width = 600, height = 400)
-  par(mfrow = c(4,3), mar = c(3, 4, 1, 0), oma = c(2, 2, 0, 2), las = 1, bty = "l")
+  pdf(paste0(dir_out, "pit_all_", type, ".pdf"), width = 600/72, height = 400/72)
+    par(mfrow = c(4,3), mar = c(3, 4, 1, 0), oma = c(2, 2, 0, 2), las = 1, bty = "l")
   ## If the type is "case", then daily forecasts, if "death": weekly forecasts
   if(type == "case") nb_days <- 7 else nb_days <- 1
   for(j in seq_len(4)){
@@ -303,7 +303,7 @@ figure_pit <- function(calib, type, min_date, countries = c("IT", "CZ", "FR"), d
       barplot((diff(Fbar_seq_prop) * J) ~ breaks[-1], ylim = c(0, ymax), xlab = "", ylab = "",
               border = NA, col = "black", space = 0, xlim = c(0, 9.5))
       label <- paste(country_i, j, ifelse(j > 1, "weeks ahead", "week ahead"), sep = " ")
-      title(main = label, line = -1)
+      title(main = label, cex.main = 0.9, line = -1)
       abline(h = 1, lty = 2)
       abline(h = c(1.5, .5), lty = 2, col = "red")
     }

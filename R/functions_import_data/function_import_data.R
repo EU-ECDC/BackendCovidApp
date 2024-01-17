@@ -66,7 +66,6 @@ import_all_files <- function(country, total, range, delay_cumu, last_date, downl
   
   ## Import vaccination data
   vacc_age_regions <- import_vacc(country, vacc_ecdc = vacc_ecdc, total)
-  vacc_age_national <- import_vacc(country, vacc_ecdc = T, national = T, total)
   ## Adjust vaccine uptake data to match incidence age groups
   if (!total){
     vacc_age <- adjust_age_group(vacc_age_regions, pop_regions, age_groups, country = country,
