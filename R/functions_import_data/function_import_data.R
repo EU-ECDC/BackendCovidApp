@@ -597,7 +597,8 @@ import_vacc <- function(country, vacc_ecdc, total = F, national = F){
     }
 
     # Convert date_week variable to date
-    vacc[,date_week := as.character(ISOweek2date(paste0(date_week,"-7")))]
+    vacc[!grepl("W", date_week),date_week := paste0(as.character(date_week), "-01")]
+    vacc[grepl("W", date_week),date_week := as.character(ISOweek2date(paste0(date_week,"-7")))]
     
     # Sum doses over different vaccines
     cols <- c("dose1", "dose2", "dose3")
