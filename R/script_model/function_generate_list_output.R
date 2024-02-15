@@ -96,7 +96,8 @@ generate_list_output <- function(country, range_dates, download, data_file, tota
   equations <- 
     list(ar = ar_terms,
          ne = addSeason2formula(reformulate(ne_terms, intercept = TRUE), period = 365),
-         end = addSeason2formula(reformulate(end_terms, intercept = TRUE))
+         end = if(country != "FR") addSeason2formula(reformulate(end_terms, intercept = TRUE)) else
+           reformulate(end_terms, intercept = TRUE)
     )
   ## Run the model
   model_fit <-
