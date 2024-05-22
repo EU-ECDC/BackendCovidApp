@@ -19,7 +19,6 @@ import_all_files <- function(country, total, range, delay_cumu, last_date, downl
   index <- import_index()
   # Get country name from index
   country_name <- index[location_key == country, country_name]
-  
   ## Import case data
   case_by_age <- import_case(country = country, download = download_case, 
                              data_file = file_case, index = index, total = total)
@@ -46,7 +45,6 @@ import_all_files <- function(country, total, range, delay_cumu, last_date, downl
                                            dt_variant = variant, 
                                            dt_case = case_by_age, 
                                            dt_pop = pop_regions, total = total)
-  
   # Get age groups from case data
   age_groups <- unique(cumu_incidence_regions$age)
   
@@ -66,6 +64,7 @@ import_all_files <- function(country, total, range, delay_cumu, last_date, downl
   
   ## Import vaccination data
   vacc_age_regions <- import_vacc(country, vacc_ecdc = vacc_ecdc, total)
+  if(any(colnames(vacc_age_regions) == "age")) vacc_age_regions <- vacc_age_regions[age != "nezařazeno", ]
   ## Adjust vaccine uptake data to match incidence age groups
   if (!total){
     vacc_age <- adjust_age_group(vacc_age_regions, pop_regions, age_groups, country = country,
@@ -194,7 +193,8 @@ import_case <- function(country, download, data_file, index, total = F){
       case1[nuts3 == "ITG17" & new_confirmed > 20000, new_confirmed := 0]
       ## Same in ITH52, remove recent extreme value (one-day-spike)
       case1[nuts3 == "ITH52" & new_confirmed > 5000, new_confirmed := 0]
-      
+      case1[new_confirmed > 150000, new_confirmed := 0]
+
       ## Select columns location_key, date, new_confirmed, and cumulative_confirmed
       case1 <- case1[, .(location_key = nuts3, date = as.character(date), 
                          new_confirmed, new_tested = NA, 
